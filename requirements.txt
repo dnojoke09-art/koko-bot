@@ -6,4 +6,6 @@ gTTS==2.5.4
 aiohttp==3.8.5
 ffmpeg-python==0.2.0
 openai-whisper==20250625
-torch==2.1.0+cpu
+# CPU-only Torch for Linux
+torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
+
