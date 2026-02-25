@@ -2,14 +2,13 @@ discord.py
 requests
 flask
 beautifulsoup4
-SpeechRecognition==3.9.0
-pydub==0.25.1
+
 openai-whisper
 torch
 
-discord.py
+
 gTTS
 aiohttp
-openai-whisper
-torch
+
 ffmpeg-python
+
