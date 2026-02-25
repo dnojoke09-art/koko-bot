@@ -28,6 +28,8 @@ FATHER_USERNAME = "zees_domain"
 MEMORY_FILE = "memory_koko.json"
 REL_FILE = "relationships_koko.json"
 
+MAX_HISTORY = 10  # how many past exchanges to remember per user
+
 # =========================
 # PERSONALITY + HARD RULES
 # =========================
@@ -105,17 +107,31 @@ async def on_message(message):
 
     # ===== ORIGINAL TRIGGER =====
     if bot_name not in message.content.lower() and not message.reference:
-        # NEW: Allow occasional sibling interaction
         if message.author.bot and random.random() < 0.3:
             pass
         else:
             return
 
     user_text = message.content.strip()
+    user_id = str(message.author.id)
     user_name = message.author.name.lower()
     is_father = user_name == FATHER_USERNAME
 
-    # ===== NEW: SOCIAL AWARENESS CONTEXT =====
+    # =========================
+    # MEMORY INIT
+    # =========================
+    if user_id not in memory:
+        memory[user_id] = {
+            "history": [],
+            "last_seen": None
+        }
+
+    # Update last seen
+    memory[user_id]["last_seen"] = datetime.now(timezone.utc).isoformat()
+
+    # =========================
+    # SOCIAL AWARENESS CONTEXT
+    # =========================
     is_reply = (
         message.reference
         and message.reference.resolved
@@ -139,11 +155,19 @@ Was I Directly Addressed: {addressed_to_me}
             "content": "You are currently speaking to your father."
         })
 
-    # Append awareness WITHOUT removing original behavior
-    messages.append({
+    # =========================
+    # APPEND HISTORY TO CONTEXT
+    # =========================
+    for entry in memory[user_id]["history"][-MAX_HISTORY:]:
+        messages.append(entry)
+
+    # Add current user message
+    current_user_entry = {
         "role": "user",
         "content": awareness_context + "\nMessage:\n" + user_text
-    })
+    }
+
+    messages.append(current_user_entry)
 
     await asyncio.sleep(COOLDOWN)
     reply = await asyncio.to_thread(groq_request, messages)
@@ -153,5 +177,19 @@ Was I Directly Addressed: {addressed_to_me}
 
     await message.channel.send(reply)
 
-client.run(DISCORD_TOKEN)
+    # =========================
+    # STORE CONVERSATION
+    # =========================
+    memory[user_id]["history"].append(current_user_entry)
+    memory[user_id]["history"].append({
+        "role": "assistant",
+        "content": reply
+    })
 
+    # Trim history
+    memory[user_id]["history"] = memory[user_id]["history"][-MAX_HISTORY:]
+
+    # Save to disk
+    save_json(MEMORY_FILE, memory)
+
+client.run(DISCORD_TOKEN)
