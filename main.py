@@ -95,9 +95,19 @@ async def groq_request(prompt):
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=data, headers=headers, timeout=15) as resp:
                 result = await resp.json()
-                return result.get("completion", "Hmm… I’m confused 😅")
-    except:
-        return "Oops, Groq API error 😵"
+                
+                # Debug: print the response for testing
+                print("Groq response:", result)
+                
+                # Try multiple ways to get the completion text
+                if "completion" in result:
+                    return result["completion"]
+                elif "choices" in result and len(result["choices"]) > 0:
+                    return result["choices"][0].get("text", "Hmm… I’m confused 😅")
+                else:
+                    return f"Hmm… I’m confused 😅 (API returned unexpected data)"
+    except Exception as e:
+        return f"Oops, Groq API error 😵 ({e})"
 
 # =========================
 # BOT SETUP
@@ -336,3 +346,4 @@ async def url(ctx, *, link:str):
 # =========================
 
 client.run(DISCORD_TOKEN)
+
