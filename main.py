@@ -33,6 +33,8 @@ MAX_HISTORY = 10  # how many past exchanges to remember per user
 # =========================
 # PERSONALITY + HARD RULES
 # =========================
+
+###EDIT SO SHES MORE FRIENDLY
 SYSTEM_PROMPT = """
 You are Koko.
 You are a female AI.
@@ -193,3 +195,4 @@ Was I Directly Addressed: {addressed_to_me}
     save_json(MEMORY_FILE, memory)
 
 client.run(DISCORD_TOKEN)
+
