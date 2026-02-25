@@ -103,12 +103,33 @@ async def on_message(message):
     if message.author == client.user:
         return
 
+    # ===== ORIGINAL TRIGGER =====
     if bot_name not in message.content.lower() and not message.reference:
-        return
+        # NEW: Allow occasional sibling interaction
+        if message.author.bot and random.random() < 0.3:
+            pass
+        else:
+            return
 
     user_text = message.content.strip()
     user_name = message.author.name.lower()
     is_father = user_name == FATHER_USERNAME
+
+    # ===== NEW: SOCIAL AWARENESS CONTEXT =====
+    is_reply = (
+        message.reference
+        and message.reference.resolved
+        and message.reference.resolved.author.id == client.user.id
+    )
+
+    addressed_to_me = bot_name in user_text.lower() or is_reply
+    author_is_bot = message.author.bot
+
+    awareness_context = f"""
+Message Author: {message.author.name}
+Author Is Bot: {author_is_bot}
+Was I Directly Addressed: {addressed_to_me}
+"""
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
@@ -118,15 +139,19 @@ async def on_message(message):
             "content": "You are currently speaking to your father."
         })
 
-    messages.append({"role": "user", "content": user_text})
+    # Append awareness WITHOUT removing original behavior
+    messages.append({
+        "role": "user",
+        "content": awareness_context + "\nMessage:\n" + user_text
+    })
 
     await asyncio.sleep(COOLDOWN)
     reply = await asyncio.to_thread(groq_request, messages)
 
-    # hard cut length
     if len(reply) > 180:
         reply = reply[:180]
 
     await message.channel.send(reply)
 
 client.run(DISCORD_TOKEN)
+
