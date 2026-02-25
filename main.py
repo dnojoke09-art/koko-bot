@@ -11,10 +11,10 @@ import asyncio
 import random
 import aiohttp
 from datetime import datetime, timedelta
-import speech_recognition as sr
 from gtts import gTTS
 import tempfile
 import threading
+import whisper
 
 # =========================
 # CONFIG
@@ -127,24 +127,18 @@ async def tts_play(vc, text):
             while vc.is_playing():
                 await asyncio.sleep(0.5)
 
+# Load Whisper model once at startup
+whisper_model = whisper.load_model("base")
+
 def stt_transcribe(audio_file):
-    """Transcribe speech to text using SpeechRecognition"""
-    recognizer = sr.Recognizer()
-    try:
-        with sr.AudioFile(audio_file) as source:
-            audio = recognizer.record(source)
-            return recognizer.recognize_google(audio)
-    except:
-        return None
+    """Transcribe speech to text using Whisper"""
+    result = whisper_model.transcribe(audio_file)
+    return result["text"]
 
 async def vc_listener(vc, user_id):
-    """Continuously listen to VC for a single user"""
+    """Continuously listen to VC for a single user (simulated)"""
     while vc.is_connected():
-        # Placeholder: In real-world, capture audio from VC
         await asyncio.sleep(10)
-        # Fake placeholder transcription
-        # Implementing real Discord VC audio capture requires Opus decoding & is complex
-        # For now, we simulate listening
         simulated_text = None
         if simulated_text:
             reply = await generate_koko_reply(user_id, simulated_text)
@@ -238,7 +232,6 @@ async def joinvc(ctx):
         vc = await ctx.author.voice.channel.connect()
         get_user_memory(memory, str(ctx.author.id))["voice_channel"] = ctx.author.voice.channel.id
         await ctx.send("Koko joined VC! 🎤")
-        # Start listener in background
         asyncio.create_task(vc_listener(vc, ctx.author.id))
     else:
         await ctx.send("You must be in a VC 😏")
@@ -264,14 +257,12 @@ async def speak(ctx, *, text):
 async def listen(ctx):
     """Listen and respond in VC"""
     if ctx.voice_client:
-        # For now, placeholder to simulate STT
         await ctx.send("Listening… (simulated)")
     else:
         await ctx.send("Join a VC first 😏")
 
 # =========================
-# Existing Commands (setup, personality, funfact, mimic, gift, forget, url, etc.)
-# Implemented as in previous scripts, unchanged
+# Existing Commands
 # =========================
 
 @client.command()
